@@ -22,6 +22,16 @@
 /* W-Bus command refresh period in mili seconds */
 #define CMD_REFRESH_PERIOD 20000L
 
+
+//t91
+//on
+//24 03 20 FF F8
+//off
+//24 02 10 36
+
+
+
+
 /* W-Bus commands */
 #define WBUS_CMD_OFF     0x10 /* no data */
 
@@ -34,7 +44,7 @@
 
 #define WBUS_CMD_SL_RD   0x32 /* Telestart system level read.  */
 #define WBUS_CMD_X_RD    0x32 /* read something. 2 bytes 0x03 0x07, returns 0x0A */
-#define WBUS_CMD_SL_WR	 0x33 /* Telestart system level write */ 
+#define WBUS_CMD_SL_WR	 0x33 /* Telestart system level write */
 #define WBUS_CMD_U1      0x38 /* sent no bytes. answer 0B 00 00 00 00 03 BF */
 
 /* Dataset commands */
@@ -43,8 +53,8 @@
 #define WBUS_CMD_DS_W     0x04 /* 2 byte: address LSB and data for writing. */
 #define WBUS_CMD_DS_MSB   0x05 /* 1 byte: address MSB. No returned data. For either read or write. */
 #define WBUS_CMD_DS_STOP  0x09 /* 0 byte: stop block mode. */
-#define WBUS_CMD_BAUD     0x34 /* Set block mode baudrate. 2 bytes. 
-                                  0x80 0x00 38400 
+#define WBUS_CMD_BAUD     0x34 /* Set block mode baudrate. 2 bytes.
+                                  0x80 0x00 38400
                                   0x40 0x00 19200
                                   0x20 0x00  9600 */
 /* After issuing WBUS_CMD_DS_START and WBUS_CMD_BAUD, the host sents 0x03 <addr> <checksum>
@@ -53,7 +63,7 @@
 /* discovered by pczepek, thank a lot ! eeprom[8] = int system_level */
 #define WBUS_TS_ERD1     0x32 /* 2 bytes: 0x00 addr */
 #define WBUS_TS_EWR1     0x33 /* 3 bytes: 0x00 addr data */
-#define WBUS_TS_ERD      0x35 /* READ_EEPROM [address]. 
+#define WBUS_TS_ERD      0x35 /* READ_EEPROM [address].
                                  Response length 2 byte. Reads two bytes from
                                  eeprom memory, from address given as parameter.
                                  The eeprom is accessible from address 0x00 to 0x1f.
@@ -102,7 +112,7 @@
 #define		STA10_VF	0x10 /*!< Vehicle Fan Relay	*/
 #define		STA10_NSH	0x20 /*!< Nozzle stock heating  */
 #define		STA10_FI	0x40 /*!< Flame indicator       */
-       
+
 #define QUERY_OPINFO0		0x04 /* Fuel type, max heat time and factor for shortening ventilation time (but details are unclear) */
 #define         OP0_FUEL        0      /*!< 0x0b: gasoline, 0x0d: diesel, 0:neutral */
 #define         OP0_TIME        1      /*!< max heating time / 10 in minutes */
@@ -260,7 +270,7 @@
 
 #define QUERY_DURATIONS2 0x12 /* 3 bytes */
 #define		DUR2_VENT 0 /* Ventilation duration hh:m */
-                    
+
 #define	QUERY_FPW	0x13 /*!< Fuel prewarming. May not be available. See wbcode */
 #define		FPW_R		0	/*!< 2 bytes: Current fuel prewarming PTC resistance in mili ohm, big endian */
 #define		FPW_P		2	/*!< 2 bytes: Currently applied fuel prewarming power in watts, big endian */
@@ -336,7 +346,7 @@
 
 /* 053 operational info indexes */
 #define OPINFO_LIMITS 02
-/* 
+/*
   data format:
  1 byte:  no idea
  2 bytes: Minimum voltage threshold in milivolts
@@ -368,3 +378,5 @@
 #define WBUS_TEXT_NAC 14 /*!< Nozzle air compressor (not standart, POELI specific) */
 #define WBUS_TEST_FPW 15 /*!< Fuel Prewarming */
 
+#define WBUSPORT Serial1
+#define DEBUGPORT Serial

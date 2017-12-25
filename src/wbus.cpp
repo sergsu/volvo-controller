@@ -13,11 +13,12 @@ int len;
 //uint16_t CommunicationsErrorCount=0;
 
 void wbus_init() {
-  Serial.end();
+  WBUSPORT.end();
+  delay(200);
   //Break set
 
 #if defined(__AVR_ATmega328P__)
-  //This code is for Arduino ATMEGA328 with single hardware serial port (pins 0 and 1)
+  //This code is for Arduino ATMEGA328 with single hardware WBUSPORT port (pins 0 and 1)
   //PORTD=digital pins 0 to 7
   DDRD = DDRD | B00000010;  //Pin1 = output
   PORTD = PORTD | B00000010; // digital 1 HIGH
@@ -26,14 +27,14 @@ void wbus_init() {
   delay(25);
 #endif
 
-  // initialize serial communication at 2400 bits per second, 8 bit data, even parity and 1 stop bit
-  Serial.begin(2400, SERIAL_8E1);
+  // initialize WBUSPORT communication at 2400 bits per second, 8 bit data, even parity and 1 stop bit
+  WBUSPORT.begin(2400, SERIAL_8E1);
 
   //250ms for timeouts
-  Serial.setTimeout(250);
+  WBUSPORT.setTimeout(250);
 
   // Empty all queues. BRK toggling may cause a false received byte (or more than one who knows).
-  while (Serial.available()) Serial.read();
+  while (WBUSPORT.available()) WBUSPORT.read();
 }
 
 
@@ -82,13 +83,13 @@ int wbus_msg_send( uint8_t addr,
 
   /* Send message */
   //rs232_flush(wbus->rs232);
-  Serial.write(buf, 3);
-  Serial.write(data, len);
-  Serial.write(data2, len2);
-  Serial.write(&chksum, 1);
+  WBUSPORT.write(buf, 3);
+  WBUSPORT.write(data, len);
+  WBUSPORT.write(data2, len2);
+  WBUSPORT.write(&chksum, 1);
 
   /* Read and check echoed header */
-  bytes = Serial.readBytes((char*)buf, 3);
+  bytes = WBUSPORT.readBytes((char*)buf, 3);
   if (bytes != 3) {
     return -1;
   }
@@ -103,7 +104,7 @@ int wbus_msg_send( uint8_t addr,
   int i;
 
   for (i = 0; i < len; i++) {
-    bytes = Serial.readBytes((char*)buf, 1);
+    bytes = WBUSPORT.readBytes((char*)buf, 1);
     if (bytes != 1 || buf[0] != data[i]) {
       //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
       //CommunicationsErrorCount++;
@@ -112,7 +113,7 @@ int wbus_msg_send( uint8_t addr,
   }
 
   for (i = 0; i < len2; i++) {
-    bytes = Serial.readBytes((char*)buf, 1);
+    bytes = WBUSPORT.readBytes((char*)buf, 1);
     if (bytes != 1 || buf[0] != data2[i]) {
       //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
       //CommunicationsErrorCount++;
@@ -121,7 +122,7 @@ int wbus_msg_send( uint8_t addr,
   }
 
   /* Check echoed checksum */
-  bytes = Serial.readBytes((char*)buf, 1);
+  bytes = WBUSPORT.readBytes((char*)buf, 1);
   if (bytes != 1 || buf[0] != chksum) {
     //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
     //CommunicationsErrorCount++;
@@ -147,7 +148,7 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
 
   /* Read address header */
   do {
-    if (Serial.readBytes((char*)buf, 1) != 1) {
+    if (WBUSPORT.readBytes((char*)buf, 1) != 1) {
       //if (*cmd != 0) {
       //PRINTF("wbus_msg_recv(): timeout\n");
       //}
@@ -164,7 +165,7 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
   //rs232_blocking(wbus->rs232, 0);
 
   /* Read length and command */
-  if (Serial.readBytes((char*)buf + 1, 2) != 2) {
+  if (WBUSPORT.readBytes((char*)buf + 1, 2) != 2) {
     //    if (*cmd != 0) {
     //     //wbus_msg_recv(): No addr/len error
     //    }
@@ -190,14 +191,14 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
   if (len > 0 || skip > 0)
   {
     for (; skip > 0; skip--) {
-      if (Serial.readBytes((char*)buf, 1) != 1) {
+      if (WBUSPORT.readBytes((char*)buf, 1) != 1) {
         return -1;
       }
       chksum = checksum(buf, 1, chksum);
     }
 
     if (len > 0) {
-      if (Serial.readBytes((char*)data, len) != len) {
+      if (WBUSPORT.readBytes((char*)data, len) != len) {
         return -1;
       }
       chksum = checksum(data, len, chksum);
@@ -211,7 +212,7 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
 
   /* Read and verify checksum */
   //rs232_read(wbus->rs232, buf, 1);
-  Serial.readBytes((char*)buf, 1);
+  WBUSPORT.readBytes((char*)buf, 1);
 
   if (*buf != chksum) {
     //   PRINTF("wbus_msg_recv() Checksum error\n");
@@ -271,8 +272,8 @@ int wbus_ident(uint8_t identCommand, uint8_t *in) {
   uint8_t tmp;
   uint8_t tmp2[2];
   tmp = identCommand;
-  len = 1; 
-  return wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, in, &len, 1); 
+  len = 1;
+  return wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, in, &len, 1);
 }
 
 /* Overall info */
@@ -286,9 +287,9 @@ int wbus_get_basic_info(HANDLE_BASIC_WBINFO i)
 
   err=wbus_ident(IDENT_DEV_NAME,(unsigned char*)i->dev_name);
   if (err) goto bail;
-  //Hack: Null terminate this string - len is set globally 
-  i->dev_name[len] = 0; 
-  
+  //Hack: Null terminate this string - len is set globally
+  i->dev_name[len] = 0;
+
   err=wbus_ident(IDENT_DEV_ID,i->dev_id);
   if (err) goto bail;
 
@@ -303,7 +304,7 @@ int wbus_get_basic_info(HANDLE_BASIC_WBINFO i)
 
   err=wbus_ident(IDENT_SERIAL,i->serial);
   if (err) goto bail;
-  
+
   //tmp = IDENT_DEV_ID;  len = 1; err = wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, i->dev_id, &len, 1);
   //if (err) goto bail;
   //tmp = IDENT_DOM_CU;  len = 1; err = wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, i->dom_cu, &len, 1);
@@ -415,4 +416,3 @@ int wbus_get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo) {
   cmdbuf[1] = ErrorNumber;
   return wbus_io(WBUS_CMD_ERR, cmdbuf, NULL, 0, (unsigned char*)errorInfo, &len, 1);
 }
-

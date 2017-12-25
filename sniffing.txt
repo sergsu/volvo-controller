@@ -1,0 +1,7 @@
+
+Schnittstellensniffing: Funksender an Webasto
+
+24 03 20 FF F8      Funk ON
+42 03 A0 FF 1E      NACK
+24 04 44 20 00 44   44: checke Ausführung von cmd 20
+42 03 C4 01 84      NACK
