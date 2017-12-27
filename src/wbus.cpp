@@ -214,8 +214,6 @@ int WbusInterface::recvAns(const uint8_t *addr,  const uint8_t *cmd,  uint8_t *d
     /* Check addresses */
   }
   while ( buf[1] != *addr );
-DEBUGPORT.println("wbus_msg_recv(): received a cmd");
-  //rs232_blocking(wbus->rs232, 0);
 
   /* Read length and command */
   if (serial.readBytes((char*)buf + 1, 2) != 2) {
@@ -223,7 +221,6 @@ DEBUGPORT.println("wbus_msg_recv(): received a cmd");
     //     //wbus_msg_recv(): No addr/len error
     //    }
     //CommunicationsErrorCount++;
-DEBUGPORT.print("#");
     return -1;
   }
 
@@ -236,7 +233,6 @@ DEBUGPORT.print("#");
       return 0;
     }
   }
-DEBUGPORT.print("-");
   chksum = checksum(buf, 3, 0);
 
   /* Read possible data */
@@ -265,7 +261,6 @@ DEBUGPORT.print("-");
   else {
     *dlen = 0;
   }
-DEBUGPORT.print("-");
   /* Read and verify checksum */
   //rs232_read(wbus->rs232, buf, 1);
   serial.readBytes((char*)buf, 1);
@@ -275,14 +270,13 @@ DEBUGPORT.print("-");
     //CommunicationsErrorCount++;
     return -1;
   }
-DEBUGPORT.print("-");
   return 0;
 }
 
 /*
  * Send a client W-Bus request and read answer from Heater.
  */
-int WbusInterface::io( uint8_t* cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip)
+int WbusInterface::io( uint8_t cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip)
 {
   int err, tries;
   int len;
@@ -302,14 +296,14 @@ int WbusInterface::io( uint8_t* cmd, uint8_t *out, uint8_t *out2, int len2, uint
     tries++;
     /* Send Message */
     addr = (WBUS_CADDR << 4) | WBUS_HADDR;
-    err = send( addr, *cmd, out, len, out2, len2);
+    err = send( addr, cmd, out, len, out2, len2);
     if (err != 0) {
       continue;
     }
 
     /* Receive reply */
     addr = (WBUS_HADDR << 4) | WBUS_CADDR;
-    err = recvAns( &addr, cmd, in, dlen, skip);
+    err = recvAns( &addr, &cmd, in, dlen, skip);
     if (err != 0) {
       continue;
     }

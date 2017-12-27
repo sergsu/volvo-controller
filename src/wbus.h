@@ -74,10 +74,6 @@ class WbusInterface
   int get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo);
   int clear_faults();
 
-  int turnOn(unsigned char mode, unsigned char time);
-  int turnOff();
-  /* Check or keep alive heating process. mode is the argument that was passed as to wbus_turnOn() */
-  int check(unsigned char mode);
   int fuelPrime( unsigned char time);
   unsigned char checksum(unsigned char *buf, unsigned char len, unsigned char chk);
   int recvAns(const uint8_t *addr,  const uint8_t *cmd,  uint8_t *data,  int *dlen,  int skip);
@@ -85,6 +81,9 @@ public:
   WbusInterface(HardwareSerial &refSer);//only hardware ports allowed (1-3)
   int listen(const uint8_t *addr, uint8_t *cmd,  uint8_t *data,  int *dlen);
   int send(uint8_t addr, uint8_t cmd, uint8_t *data, int len, uint8_t *data2, int len2);
-  int io(uint8_t* cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip);
-
+  int io(uint8_t cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip);
+  int turnOn(unsigned char mode, unsigned char time);
+  int turnOff();
+  /* Check or keep alive heating process. mode is the argument that was passed as to wbus_turnOn() */
+  int check(unsigned char mode);
 };
