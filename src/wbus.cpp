@@ -145,7 +145,6 @@ int WbusInterface::listen(const uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  i
 
   do{
     if(serial.readBytes((char*)buf, 1) != 1) {
-      DEBUGPORT.print("rcv timeout 0");
       return -1;
     }
   }

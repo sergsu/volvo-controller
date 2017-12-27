@@ -32,6 +32,7 @@
 const unsigned long BurnTime = 2ul * 60ul * 1000ul;//default 20 min burn time in ms
 WbusInterface* wbusRadio;
 WbusInterface* wbusHeater;
+BurnTimePresetInput* presetInput;
 uint8_t cmd = 0;
 uint8_t data[10];
 int dlen = 0;
@@ -81,6 +82,11 @@ bool waitForOffSignal(){
 }
 
 bool checkVoltage(){
+  constexpr float voltageDivider = (17.8+66.0)/17.8;
+  constexpr float scale = 12.2/12.7;
+  int sensorValue = analogRead(A0);
+  float voltage= sensorValue * (voltageDivider*scale*5.0 / 1023.0);
+  DEBUGPORT.print(voltage);
   DEBUGPORT.println("check Voltage");
   return true;
 }
@@ -127,6 +133,10 @@ bool checkBurnTime(){
 }
 
 void loop() {
+  checkVoltage();
+  int b=presetInput->getBurnTime();
+  DEBUGPORT.print(b);
+
   switch(currentState){
     case State::Idle:
       if(waitForOnSignal() && checkVoltage()){
@@ -180,7 +190,9 @@ void setup() {
   DEBUGPORT.begin(9600);
   wbusRadio = new WbusInterface(Serial1);
   wbusHeater = new WbusInterface(Serial2);
+  presetInput = new BurnTimePresetInput();
   pinMode(49, OUTPUT);
   digitalWrite(49, HIGH);
+
   currentState = State::Idle;
 }

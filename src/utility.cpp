@@ -45,3 +45,29 @@ short twobyte2word(unsigned char *in)
   WORDSWAP((unsigned char*)&result, in);
   return result;
 }
+
+
+BurnTimePresetInput::BurnTimePresetInput(){
+  pinMode(Pins[0],INPUT_PULLUP);
+  pinMode(Pins[1],INPUT_PULLUP);
+  pinMode(Pins[2],INPUT_PULLUP);
+  pinMode(Pins[3],INPUT_PULLUP);
+  pinMode(Pins[4],INPUT_PULLUP);
+  pinMode(Pins[5],INPUT_PULLUP);
+}
+
+int BurnTimePresetInput::getBurnTime(){
+  int i=0;
+  for(; i<PinCnt; ++i){
+    if(!digitalRead(Pins[i]))
+      break;
+  }
+
+  if(i==PinCnt){
+    return 20;//default
+  }
+
+  return (i+1) * 10;
+}
+
+int BurnTimePresetInput::Pins[PinCnt] = {31,32,33,34,35,36};//10-60mins
