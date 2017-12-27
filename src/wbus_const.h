@@ -377,6 +377,3 @@
 #define WBUS_TEST_NSH 13 /*!< Nozzel Stock Heating */
 #define WBUS_TEXT_NAC 14 /*!< Nozzle air compressor (not standart, POELI specific) */
 #define WBUS_TEST_FPW 15 /*!< Fuel Prewarming */
-
-#define WBUSPORT Serial1
-#define DEBUGPORT Serial

@@ -9,6 +9,7 @@
 #include <HardwareSerial.h>
 #include <Arduino.h>
 #include "wbus_const.h"
+#include "utility.h"
 
 
 typedef struct
@@ -60,20 +61,30 @@ typedef struct {
 
 typedef err_info_t *HANDLE_ERRINFO;
 
-int wbus_sensor_read(HANDLE_WBSENSOR sensor, int idx);
-void wbus_init();
+class WbusInterface
+{
+  HardwareSerial &serial;
+  void init();
+  int sensor_read(HANDLE_WBSENSOR sensor, int idx);
+  //int wbus_get_version_wbinfo(HANDLE_VERSION_WBINFO i);
+  int get_basic_info(HANDLE_BASIC_WBINFO i);
+  int ident(uint8_t identCommand, uint8_t *in);
 
+  int get_fault_count(unsigned char ErrorList[32]);
+  int get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo);
+  int clear_faults();
 
-//int wbus_get_version_wbinfo(HANDLE_VERSION_WBINFO i);
-int wbus_get_basic_info(HANDLE_BASIC_WBINFO i);
+  int turnOn(unsigned char mode, unsigned char time);
+  int turnOff();
+  /* Check or keep alive heating process. mode is the argument that was passed as to wbus_turnOn() */
+  int check(unsigned char mode);
+  int fuelPrime( unsigned char time);
+  unsigned char checksum(unsigned char *buf, unsigned char len, unsigned char chk);
+  int recvAns(const uint8_t *addr,  const uint8_t *cmd,  uint8_t *data,  int *dlen,  int skip);
+public:
+  WbusInterface(HardwareSerial &refSer);//only hardware ports allowed (1-3)
+  int listen(const uint8_t *addr, uint8_t *cmd,  uint8_t *data,  int *dlen);
+  int send(uint8_t addr, uint8_t cmd, uint8_t *data, int len, uint8_t *data2, int len2);
+  int io(uint8_t* cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip);
 
-int wbus_get_fault_count(unsigned char ErrorList[32]);
-int wbus_get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo);
-int wbus_clear_faults();
-
-int wbus_turnOn(unsigned char mode, unsigned char time);
-int wbus_turnOff();
-/* Check or keep alive heating process. mode is the argument that was passed as to wbus_turnOn() */
-int wbus_check(unsigned char mode);
-int wbus_fuelPrime( unsigned char time);
-
+};

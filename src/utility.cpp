@@ -1,9 +1,10 @@
 #include <Arduino.h>
+#include "utility.h"
 
 char* PrintHexByte(char *str, unsigned int d) {
   if (d <= 0xF) *str++ = '0';
   utoa (d,str,16);
-  str+=strlen(str);  
+  str+=strlen(str);
   return str;
 }
 
@@ -21,7 +22,7 @@ char* hexdump(char *str, unsigned char *d, int l, bool appendNewLine)
 }
 
 char *i2str(int i, char *buf) {
-  /* integer to string convert */  
+  /* integer to string convert */
   itoa (i,buf,10);
   buf+=strlen(buf);
   return buf;
@@ -44,4 +45,3 @@ short twobyte2word(unsigned char *in)
   WORDSWAP((unsigned char*)&result, in);
   return result;
 }
-

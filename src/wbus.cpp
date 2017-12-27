@@ -12,13 +12,19 @@ int len;
 
 //uint16_t CommunicationsErrorCount=0;
 
-void wbus_init() {
-  WBUSPORT.end();
+WbusInterface::WbusInterface(HardwareSerial &refSer)
+:serial(refSer)
+{
+  init();
+}
+
+void WbusInterface::init() {
+  serial.end();
   delay(200);
   //Break set
 
 #if defined(__AVR_ATmega328P__)
-  //This code is for Arduino ATMEGA328 with single hardware WBUSPORT port (pins 0 and 1)
+  //This code is for Arduino ATMEGA328 with single hardware serial port (pins 0 and 1)
   //PORTD=digital pins 0 to 7
   DDRD = DDRD | B00000010;  //Pin1 = output
   PORTD = PORTD | B00000010; // digital 1 HIGH
@@ -27,14 +33,13 @@ void wbus_init() {
   delay(25);
 #endif
 
-  // initialize WBUSPORT communication at 2400 bits per second, 8 bit data, even parity and 1 stop bit
-  WBUSPORT.begin(2400, SERIAL_8E1);
+  // initialize serial communication at 2400 bits per second, 8 bit data, even parity and 1 stop bit
+  serial.begin(2400, SERIAL_8E1);
 
   //250ms for timeouts
-  WBUSPORT.setTimeout(250);
-
+  serial.setTimeout(1000);
   // Empty all queues. BRK toggling may cause a false received byte (or more than one who knows).
-  while (WBUSPORT.available()) WBUSPORT.read();
+  while (serial.available()) serial.read();
 }
 
 
@@ -43,7 +48,7 @@ void wbus_init() {
  * \param len length of data
  * \param chk initial value of the checksum. Useful for concatenating.
  */
-unsigned char checksum(unsigned char *buf, unsigned char len, unsigned char chk)
+unsigned char WbusInterface::checksum(unsigned char *buf, unsigned char len, unsigned char chk)
 {
   for (; len != 0; len--) {
     chk ^= *buf++;
@@ -61,7 +66,7 @@ unsigned char checksum(unsigned char *buf, unsigned char len, unsigned char chk)
  * \param len length the second data buffer.
  * \return 0 if success, 1 on error.
  */
-int wbus_msg_send( uint8_t addr,
+int WbusInterface::send( uint8_t addr,
                    uint8_t cmd,
                    uint8_t *data,
                    int len,
@@ -83,13 +88,13 @@ int wbus_msg_send( uint8_t addr,
 
   /* Send message */
   //rs232_flush(wbus->rs232);
-  WBUSPORT.write(buf, 3);
-  WBUSPORT.write(data, len);
-  WBUSPORT.write(data2, len2);
-  WBUSPORT.write(&chksum, 1);
+  serial.write(buf, 3);
+  serial.write(data, len);
+  serial.write(data2, len2);
+  serial.write(&chksum, 1);
 
   /* Read and check echoed header */
-  bytes = WBUSPORT.readBytes((char*)buf, 3);
+  bytes = serial.readBytes((char*)buf, 3);
   if (bytes != 3) {
     return -1;
   }
@@ -104,7 +109,7 @@ int wbus_msg_send( uint8_t addr,
   int i;
 
   for (i = 0; i < len; i++) {
-    bytes = WBUSPORT.readBytes((char*)buf, 1);
+    bytes = serial.readBytes((char*)buf, 1);
     if (bytes != 1 || buf[0] != data[i]) {
       //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
       //CommunicationsErrorCount++;
@@ -113,7 +118,7 @@ int wbus_msg_send( uint8_t addr,
   }
 
   for (i = 0; i < len2; i++) {
-    bytes = WBUSPORT.readBytes((char*)buf, 1);
+    bytes = serial.readBytes((char*)buf, 1);
     if (bytes != 1 || buf[0] != data2[i]) {
       //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
       //CommunicationsErrorCount++;
@@ -122,13 +127,62 @@ int wbus_msg_send( uint8_t addr,
   }
 
   /* Check echoed checksum */
-  bytes = WBUSPORT.readBytes((char*)buf, 1);
+  bytes = serial.readBytes((char*)buf, 1);
   if (bytes != 1 || buf[0] != chksum) {
     //PRINTF("wbus_msg_send() K-Line error. %d < 1 (data2)\n", bytes);
     //CommunicationsErrorCount++;
     return -1;
   }
 
+  return 0;
+}
+
+int WbusInterface::listen(const uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen)
+{
+  uint8_t buf[3];
+  uint8_t chksum = 0;
+  int len = 0;
+
+  do{
+    if(serial.readBytes((char*)buf, 1) != 1) {
+      DEBUGPORT.print("rcv timeout 0");
+      return -1;
+    }
+  }
+  while ( buf[0] != *addr );
+  DEBUGPORT.print("wbus_msg_recv(): received cmd ");
+
+  /* Read length and command */
+  if (serial.readBytes((char*)buf + 1, 2) != 2) {
+    DEBUGPORT.println("rcv timeout 1");
+    return -1;
+  }
+  *cmd = buf[2];
+  DEBUGPORT.println(*cmd,HEX);
+  chksum = checksum(buf, 3, 0);
+
+  /* Read possible data */
+  len = buf[1] - 2;
+  *dlen = 0;
+
+  if (len > 0 )
+  {
+    if ((int)serial.readBytes((char*)data, len) != len) {
+        DEBUGPORT.println("rcv timeout 2");
+        return -1;
+      }
+      chksum = checksum(data, len, chksum);
+    }
+  /* Store data length */
+  *dlen = len;
+
+  /* Read and verify checksum */
+  serial.readBytes((char*)buf, 1);
+
+  if (*buf != chksum) {
+    DEBUGPORT.println("rcv chksum err");
+    return -1;
+  }
   return 0;
 }
 
@@ -140,7 +194,7 @@ int wbus_msg_send( uint8_t addr,
  * data: buffer to either receive client data, or sent its content if client (*cmd!=0).  If *data is !=0, then *data amount of data bytes will  be skipped.
  * dlen: out: length of data.
  */
-int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int skip)
+int WbusInterface::recvAns(const uint8_t *addr,  const uint8_t *cmd,  uint8_t *data,  int *dlen,  int skip)
 {
   uint8_t buf[3];
   uint8_t chksum;
@@ -148,12 +202,11 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
 
   /* Read address header */
   do {
-    if (WBUSPORT.readBytes((char*)buf, 1) != 1) {
+    if (serial.readBytes((char*)buf, 1) != 1) {
       //if (*cmd != 0) {
-      //PRINTF("wbus_msg_recv(): timeout\n");
       //}
       //CommunicationsErrorCount++;
-      return -1;
+      return -3;
     }
 
     buf[1] = buf[0];
@@ -161,16 +214,16 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
     /* Check addresses */
   }
   while ( buf[1] != *addr );
-
+DEBUGPORT.println("wbus_msg_recv(): received a cmd");
   //rs232_blocking(wbus->rs232, 0);
 
   /* Read length and command */
-  if (WBUSPORT.readBytes((char*)buf + 1, 2) != 2) {
+  if (serial.readBytes((char*)buf + 1, 2) != 2) {
     //    if (*cmd != 0) {
     //     //wbus_msg_recv(): No addr/len error
     //    }
     //CommunicationsErrorCount++;
-
+DEBUGPORT.print("#");
     return -1;
   }
 
@@ -179,10 +232,11 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
     if (buf[2] != (*cmd | 0x80)) {
       /* Message reject happens. Do not be too picky about that. */
       *dlen = 0;
+      DEBUGPORT.print("+");
       return 0;
     }
   }
-
+DEBUGPORT.print("-");
   chksum = checksum(buf, 3, 0);
 
   /* Read possible data */
@@ -191,14 +245,16 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
   if (len > 0 || skip > 0)
   {
     for (; skip > 0; skip--) {
-      if (WBUSPORT.readBytes((char*)buf, 1) != 1) {
+      if (serial.readBytes((char*)buf, 1) != 1) {
+        DEBUGPORT.print("*");
         return -1;
       }
       chksum = checksum(buf, 1, chksum);
     }
 
     if (len > 0) {
-      if (WBUSPORT.readBytes((char*)data, len) != len) {
+      if ((int)serial.readBytes((char*)data, len) != len) {
+        DEBUGPORT.print(":");
         return -1;
       }
       chksum = checksum(data, len, chksum);
@@ -209,24 +265,24 @@ int wbus_msg_recv(uint8_t *addr,  uint8_t *cmd,  uint8_t *data,  int *dlen,  int
   else {
     *dlen = 0;
   }
-
+DEBUGPORT.print("-");
   /* Read and verify checksum */
   //rs232_read(wbus->rs232, buf, 1);
-  WBUSPORT.readBytes((char*)buf, 1);
+  serial.readBytes((char*)buf, 1);
 
   if (*buf != chksum) {
     //   PRINTF("wbus_msg_recv() Checksum error\n");
     //CommunicationsErrorCount++;
     return -1;
   }
-
+DEBUGPORT.print("-");
   return 0;
 }
 
 /*
  * Send a client W-Bus request and read answer from Heater.
  */
-int wbus_io( uint8_t cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip)
+int WbusInterface::io( uint8_t* cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, int *dlen, int skip)
 {
   int err, tries;
   int len;
@@ -234,28 +290,26 @@ int wbus_io( uint8_t cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, in
 
   len = *dlen;
 
-  //rs232_blocking(wbus->rs232, 0);
-
   tries = 0;
   do {
     if (tries != 0) {
       //CommunicationsErrorCount++;
-      //PRINTF("wbus_io() retry: %d\n", tries);
+      DEBUGPORT.println("wbus_io() retry");
       delay(50);
-      wbus_init();
+      init();
     }
 
     tries++;
     /* Send Message */
     addr = (WBUS_CADDR << 4) | WBUS_HADDR;
-    err = wbus_msg_send( addr, cmd, out, len, out2, len2);
+    err = send( addr, *cmd, out, len, out2, len2);
     if (err != 0) {
       continue;
     }
 
     /* Receive reply */
     addr = (WBUS_HADDR << 4) | WBUS_CADDR;
-    err = wbus_msg_recv( &addr, &cmd, in, dlen, skip);
+    err = recvAns( &addr, cmd, in, dlen, skip);
     if (err != 0) {
       continue;
     }
@@ -268,16 +322,15 @@ int wbus_io( uint8_t cmd, uint8_t *out, uint8_t *out2, int len2, uint8_t *in, in
   return err;
 }
 
-int wbus_ident(uint8_t identCommand, uint8_t *in) {
+int WbusInterface::ident(uint8_t identCommand, uint8_t *in) {
   uint8_t tmp;
-  uint8_t tmp2[2];
   tmp = identCommand;
   len = 1;
-  return wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, in, &len, 1);
+  return io( WBUS_CMD_IDENT, &tmp, NULL, 0, in, &len, 1);
 }
 
 /* Overall info */
-int wbus_get_basic_info(HANDLE_BASIC_WBINFO i)
+int WbusInterface::get_basic_info(HANDLE_BASIC_WBINFO i)
 {
   int err;
 //  uint8_t tmp;
@@ -285,24 +338,24 @@ int wbus_get_basic_info(HANDLE_BASIC_WBINFO i)
 //  tmp = IDENT_DEV_NAME; len = 1; err = wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, (unsigned char*)i->dev_name, &len, 1);
 //  if (err) goto bail;
 
-  err=wbus_ident(IDENT_DEV_NAME,(unsigned char*)i->dev_name);
+  err=ident(IDENT_DEV_NAME,(unsigned char*)i->dev_name);
   if (err) goto bail;
   //Hack: Null terminate this string - len is set globally
   i->dev_name[len] = 0;
 
-  err=wbus_ident(IDENT_DEV_ID,i->dev_id);
+  err=ident(IDENT_DEV_ID,i->dev_id);
   if (err) goto bail;
 
-  err=wbus_ident(IDENT_DOM_CU,i->dom_cu);
+  err=ident(IDENT_DOM_CU,i->dom_cu);
   if (err) goto bail;
 
-  err=wbus_ident(IDENT_DOM_HT,i->dom_ht);
+  err=ident(IDENT_DOM_HT,i->dom_ht);
   if (err) goto bail;
 
-  err=wbus_ident(IDENT_CUSTID,i->customer_id);
+  err=ident(IDENT_CUSTID,i->customer_id);
   if (err) goto bail;
 
-  err=wbus_ident(IDENT_SERIAL,i->serial);
+  err=ident(IDENT_SERIAL,i->serial);
   if (err) goto bail;
 
   //tmp = IDENT_DEV_ID;  len = 1; err = wbus_io( WBUS_CMD_IDENT, &tmp, NULL, 0, i->dev_id, &len, 1);
@@ -322,7 +375,7 @@ bail:
 
 
 /* Sensor access */
-int wbus_sensor_read(HANDLE_WBSENSOR sensor, int idx)
+int WbusInterface::sensor_read(HANDLE_WBSENSOR sensor, int idx)
 {
   int err  = 0;
   uint8_t sen;
@@ -346,7 +399,7 @@ int wbus_sensor_read(HANDLE_WBSENSOR sensor, int idx)
 
   sen = idx;
   len = 1;
-  err = wbus_io(WBUS_CMD_QUERY, &sen, NULL, 0, sensor->value, &len, 1);
+  err = io(WBUS_CMD_QUERY, &sen, NULL, 0, sensor->value, &len, 1);
   if (err != 0)
   {
     //PRINTF("Reading sensor %d failed\n", );
@@ -361,58 +414,58 @@ int wbus_sensor_read(HANDLE_WBSENSOR sensor, int idx)
 }
 
 /* Turn heater on for time minutes */
-int wbus_turnOn(unsigned char cmd, unsigned char time)
+int WbusInterface::turnOn(unsigned char cmd, unsigned char time)
 {
   len = 1;
   cmdbuf[0] = time;
-  return wbus_io(cmd, cmdbuf, NULL, 0, cmdbuf, &len, 0);
+  return io(cmd, cmdbuf, NULL, 0, cmdbuf, &len, 0);
 }
 
 /* Check current command */
-int wbus_check(unsigned char mode)
+int WbusInterface::check(unsigned char mode)
 {
   len = 2;
   //unsigned char tmp[3];
   cmdbuf[0] = mode;
   cmdbuf[1] = 0;
-  return wbus_io(WBUS_CMD_CHK, cmdbuf, NULL, 0, cmdbuf, &len, 0);
+  return io(WBUS_CMD_CHK, cmdbuf, NULL, 0, cmdbuf, &len, 0);
 }
 
 /* Turn heater off */
-int wbus_turnOff()
+int WbusInterface::turnOff()
 {
   len = 0;
-  return wbus_io(WBUS_CMD_OFF, cmdbuf, NULL, 0, cmdbuf, &len, 0);
+  return io(WBUS_CMD_OFF, cmdbuf, NULL, 0, cmdbuf, &len, 0);
 }
 
-int wbus_fuelPrime( unsigned char time)
+int WbusInterface::fuelPrime( unsigned char time)
 {
   cmdbuf[0] = 0x03;
   cmdbuf[1] = 0x00;
   cmdbuf[2] = time >> 1;
   len = 3;
 
-  return wbus_io(WBUS_CMD_X, cmdbuf, NULL, 0, cmdbuf, &len, 0);
+  return io(WBUS_CMD_X, cmdbuf, NULL, 0, cmdbuf, &len, 0);
 }
 
-int wbus_get_fault_count(unsigned char ErrorList[32]) {
+int WbusInterface::get_fault_count(unsigned char ErrorList[32]) {
   unsigned char tmp[2];
 
   tmp[0] = ERR_LIST;
   len = 1;
-  return wbus_io(WBUS_CMD_ERR, tmp, NULL, 0, ErrorList, &len, 1);
+  return io(WBUS_CMD_ERR, tmp, NULL, 0, ErrorList, &len, 1);
 }
 
-int wbus_clear_faults() {
+int WbusInterface::clear_faults() {
   uint8_t tmp;
   tmp = ERR_DEL;
   len = 1;
-  return wbus_io(WBUS_CMD_ERR, &tmp, NULL, 0, &tmp, &len, 0);
+  return io(WBUS_CMD_ERR, &tmp, NULL, 0, &tmp, &len, 0);
 }
 
-int wbus_get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo) {
+int WbusInterface::get_fault(unsigned char ErrorNumber, HANDLE_ERRINFO errorInfo) {
   len = 2;
   cmdbuf[0] = ERR_READ;
   cmdbuf[1] = ErrorNumber;
-  return wbus_io(WBUS_CMD_ERR, cmdbuf, NULL, 0, (unsigned char*)errorInfo, &len, 1);
+  return io(WBUS_CMD_ERR, cmdbuf, NULL, 0, (unsigned char*)errorInfo, &len, 1);
 }

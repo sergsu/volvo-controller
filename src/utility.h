@@ -1,4 +1,6 @@
-
+#ifndef _UTILITY_H_
+#define _UTILITY_H_
+#include <HardwareSerial.h>
 
 char* PrintHexByte(char *str, unsigned int d);
 char* hexdump(char *str, unsigned char *d, int l, bool appendNewLine);
@@ -13,3 +15,6 @@ short twobyte2word(unsigned char *in);
 #define WORD2HOUR(w)	  twobyte2word(w)
 //#define WORD2VOLT_TEXT(t, w) shortToMili(t, twobyte2word(w))
 
+#define DEBUGPORT Serial
+
+#endif //_UTILITY_H_

@@ -29,29 +29,58 @@
 
 #include "main.h"
 
+WbusInterface* wbusRadio;
+WbusInterface* wbusHeater;
+uint8_t cmd = 0;
+uint8_t in = 0;
+int dlen = 0;
+int skip = 0;
+uint8_t addr = 0;
+int err = 0;
 
 void loop() {
-  unsigned char incomingByte = 0;
-  // send data only when you receive data:
-  if (WBUSPORT.available() > 0) {
-    // read the incoming byte:
-    digitalWrite(49, LOW);
-    incomingByte = WBUSPORT.read();
-    DEBUGPORT.write(incomingByte);
-    digitalWrite(49, HIGH);
+  digitalWrite(49, LOW);
+  cmd = 0; in = 0; dlen = 0; skip = 0; addr = 0x24; //radio button sends to heater
+  err = wbusRadio->listen( &addr, &cmd, &in, &dlen);
+  if(err){
+    DEBUGPORT.print(".");
+    return;
+  }
+
+  DEBUGPORT.print("radio said: ");
+  DEBUGPORT.print(cmd, HEX);
+  DEBUGPORT.println(in, HEX);
+
+  if(cmd == WBUS_CMD_ON){
+    cmd = WBUS_CMD_ON_PH;
+    DEBUGPORT.println("heater cmd exchanged");
+    //in = 0x16; //limit to 20 min
+  }
+  digitalWrite(49, HIGH);
+  err = wbusHeater->io( &cmd, &in, nullptr, 0, &in, &dlen, skip);
+  if(err){
+    DEBUGPORT.println("rcv err heater");
+    return;
+  }
+  DEBUGPORT.print("heater answered: ");
+  DEBUGPORT.println(in, HEX);
+
+  if( (cmd & 0x7F) == WBUS_CMD_ON_PH ){
+    cmd = (cmd & 0x80) | WBUS_CMD_ON;
+    DEBUGPORT.println("heater cmd answer exchanged");
+  }
+  wbusRadio->send( addr, cmd, &in, dlen, nullptr, 0);
+  if(err){
+    DEBUGPORT.println("answer to radio err");
+    return;
   }
 }
 
-
 void setup() {
   //Red LED on
+  DEBUGPORT.begin(9600);
+  wbusRadio = new WbusInterface(Serial1);
+  wbusHeater = new WbusInterface(Serial2);
   pinMode(49, OUTPUT);
   digitalWrite(49, HIGH);
-
-
-  wbus_init();//inits serial 1
-
-  DEBUGPORT.begin(9600);
-  //DEBUGPORT.println("Start");
-  delay(500);
 }
