@@ -48,26 +48,23 @@ short twobyte2word(unsigned char *in)
 
 
 BurnTimePresetInput::BurnTimePresetInput(){
-  pinMode(Pins[0],INPUT_PULLUP);
-  pinMode(Pins[1],INPUT_PULLUP);
-  pinMode(Pins[2],INPUT_PULLUP);
-  pinMode(Pins[3],INPUT_PULLUP);
-  pinMode(Pins[4],INPUT_PULLUP);
-  pinMode(Pins[5],INPUT_PULLUP);
+  for(int i=0; i<PinCnt; ++i)
+    pinMode(SensePins[i],INPUT_PULLUP);
+
+  for(int i=0; i<PinCnt; ++i){
+    pinMode(GroundPins[i],OUTPUT);
+    digitalWrite(GroundPins[i],LOW);
+  }
 }
 
 int BurnTimePresetInput::getBurnTime(){
   int i=0;
   for(; i<PinCnt; ++i){
-    if(!digitalRead(Pins[i]))
-      break;
+    if(!digitalRead(SensePins[i]))
+      return (i+1) * 10;
   }
-
-  if(i==PinCnt){
-    return 20;//default
-  }
-
-  return (i+1) * 10;
+  return 20;//default
 }
 
-int BurnTimePresetInput::Pins[PinCnt] = {31,32,33,34,35,36};//10-60mins
+int BurnTimePresetInput::SensePins[PinCnt] = {31,33,35,37};//10-40mins
+int BurnTimePresetInput::GroundPins[PinCnt] = {30,32,34,36};

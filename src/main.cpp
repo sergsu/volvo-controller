@@ -30,6 +30,8 @@
 #include "main.h"
 
 const unsigned long BurnTime = 2ul * 60ul * 1000ul;//default 20 min burn time in ms
+const int LowVoltage = 11.0;
+
 WbusInterface* wbusRadio;
 WbusInterface* wbusHeater;
 BurnTimePresetInput* presetInput;
@@ -82,12 +84,15 @@ bool waitForOffSignal(){
 }
 
 bool checkVoltage(){
-  constexpr float voltageDivider = (17.8+66.0)/17.8;
-  constexpr float scale = 12.2/12.7;
+  constexpr float voltageDivider = (17.8+66.0)/17.8;//voltage divisor resistors
+  constexpr float scale = 12.2/12.7;//correction
   int sensorValue = analogRead(A0);
-  float voltage= sensorValue * (voltageDivider*scale*5.0 / 1023.0);
+  float voltage = sensorValue * (voltageDivider*scale*5.0 / 1023.0);
   DEBUGPORT.print(voltage);
   DEBUGPORT.println("check Voltage");
+  if(voltage<LowVoltage){
+    return false;
+  }
   return true;
 }
 
@@ -140,12 +145,12 @@ void loop() {
   switch(currentState){
     case State::Idle:
       if(waitForOnSignal() && checkVoltage()){
+        digitalWrite(53, HIGH);
         if(startHeater()){
           currentState = State::Burning;
-          digitalWrite(49, HIGH);
         }
       }
-      digitalWrite(49, LOW);
+      digitalWrite(53, LOW);
     break;
     case State::Burning:
       if(!checkVoltage()){
@@ -191,8 +196,8 @@ void setup() {
   wbusRadio = new WbusInterface(Serial1);
   wbusHeater = new WbusInterface(Serial2);
   presetInput = new BurnTimePresetInput();
-  pinMode(49, OUTPUT);
-  digitalWrite(49, HIGH);
+  pinMode(53, OUTPUT);
+  digitalWrite(53, HIGH);
 
   currentState = State::Idle;
 }

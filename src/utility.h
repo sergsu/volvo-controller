@@ -18,8 +18,9 @@ short twobyte2word(unsigned char *in);
 #define DEBUGPORT Serial
 
 class BurnTimePresetInput{
-  const static int PinCnt = 6;
-  static int Pins[PinCnt];
+  const static int PinCnt = 4;
+  static int SensePins[PinCnt];
+  static int GroundPins[PinCnt];
 public:
   BurnTimePresetInput();
   int getBurnTime();//in minutes
