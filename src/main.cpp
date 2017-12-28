@@ -29,7 +29,6 @@
 
 #include "main.h"
 
-const unsigned long BurnTime = 2ul * 60ul * 1000ul;//default 20 min burn time in ms
 const int LowVoltage = 11.0;
 
 WbusInterface* wbusRadio;
@@ -106,19 +105,16 @@ bool shutdownHeater(){
 }
 
 bool startHeater(){
-  DEBUGPORT.println("on");
   if(wbusHeater->turnOn(WBUS_CMD_ON_PH, 20)){
     DEBUGPORT.println("startHeater(): rcv err heater");
     return false;
   }
 
   startTime = millis();
-  DEBUGPORT.print(startTime);DEBUGPORT.println(" New startTime");
   return true;
 }
 
 bool keepAlive(){
-  DEBUGPORT.println("keepAlive");
   if(wbusHeater->check(WBUS_CMD_ON_PH)){
     DEBUGPORT.println("keepAlive(): rcv err heater");
     return false;
@@ -127,21 +123,17 @@ bool keepAlive(){
 }
 
 bool checkBurnTime(){
-  DEBUGPORT.println("checkBurnTime");
-  if(millis() - startTime > BurnTime){
+  unsigned long burnTime = presetInput->getBurnTime() * 60ul * 1000ul;//mins to millis
+  if(millis() - startTime > burnTime){
     DEBUGPORT.println("BurnTime over");
     return false;
   }
-  DEBUGPORT.print((BurnTime - (millis()-startTime)) / 1000l);
+  DEBUGPORT.print((burnTime - (millis()-startTime)) / 1000l);
   DEBUGPORT.println(" RestZeit");
   return true;
 }
 
 void loop() {
-  checkVoltage();
-  int b=presetInput->getBurnTime();
-  DEBUGPORT.print(b);
-
   switch(currentState){
     case State::Idle:
       if(waitForOnSignal() && checkVoltage()){
