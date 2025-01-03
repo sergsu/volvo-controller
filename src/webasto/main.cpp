@@ -22,14 +22,13 @@
 
 // __TIME__ __DATE__
 
+#include "webasto/main.h"
 
 #include <Arduino.h>
 #include <EEPROM.h>
+
+#include "../config.h"
 #include "webasto/utility.h"
-
-#include "webasto/main.h"
-
-const int LowVoltage = 11.0;
 
 WbusInterface* wbusHeater;
 BurnTimePresetInput* presetInput;
@@ -42,14 +41,9 @@ int err = 0;
 int voltageCheckCnt = 0;
 unsigned long startTime = 0;
 
-enum class State{
-  Unknown,
-  Idle,
-  Burning,
-  LowVoltage
-} currentState;
+enum class State { Unknown, Idle, Burning, LowVoltage } currentState;
 
-bool waitForOnSignal(){
+bool waitForOnSignal() {
   // cmd = 0; dlen = 0; addr = 0x24; //radio button sends to heater
   // startTime = 0;
   // int err = wbusRadio->listen( &addr, &cmd, data, &dlen);
@@ -65,7 +59,7 @@ bool waitForOnSignal(){
   return false;
 }
 
-bool waitForOffSignal(){
+bool waitForOffSignal() {
   // cmd = 0; dlen = 0; addr = 0x24; //radio button sends to heater
   // int err = wbusRadio->listen( &addr, &cmd, data, &dlen);
   // if(err){
@@ -81,30 +75,31 @@ bool waitForOffSignal(){
   return false;
 }
 
-bool checkVoltage(){
-  constexpr float voltageDivider = (17.8+66.0)/17.8;//voltage divisor resistors
-  constexpr float scale = 12.2/12.7;//correction
+bool checkVoltage() {
+  constexpr float voltageDivider =
+      (17.8 + 66.0) / 17.8;             // voltage divisor resistors
+  constexpr float scale = 12.2 / 12.7;  // correction
   int sensorValue = analogRead(A0);
-  float voltage = sensorValue * (voltageDivider*scale*5.0 / 1023.0);
+  float voltage = sensorValue * (voltageDivider * scale * 5.0 / 1023.0);
   DEBUGPORT.print(voltage);
   DEBUGPORT.println("check Voltage");
-  if(voltage<LowVoltage){
+  if (voltage < LowVoltage) {
     return false;
   }
   return true;
 }
 
-bool shutdownHeater(){
+bool shutdownHeater() {
   startTime = 0;
   DEBUGPORT.println("off");
-  if(!wbusHeater->turnOff()){
+  if (!wbusHeater->turnOff()) {
     return true;
   }
   return false;
 }
 
-bool startHeater(){
-  if(wbusHeater->turnOn(WBUS_CMD_ON_PH, 20)){
+bool startHeater() {
+  if (wbusHeater->turnOn(WBUS_CMD_ON_PH, 20)) {
     DEBUGPORT.println("startHeater(): rcv err heater");
     return false;
   }
@@ -113,67 +108,68 @@ bool startHeater(){
   return true;
 }
 
-bool keepAlive(){
-  if(wbusHeater->check(WBUS_CMD_ON_PH)){
+bool keepAlive() {
+  if (wbusHeater->check(WBUS_CMD_ON_PH)) {
     DEBUGPORT.println("keepAlive(): rcv err heater");
     return false;
   }
   return true;
 }
 
-bool checkBurnTime(){
-  unsigned long burnTime = presetInput->getBurnTime() * 60ul * 1000ul;//mins to millis
-  if(millis() - startTime > burnTime){
+bool checkBurnTime() {
+  unsigned long burnTime =
+      presetInput->getBurnTime() * 60ul * 1000ul;  // mins to millis
+  if (millis() - startTime > burnTime) {
     DEBUGPORT.println("BurnTime over");
     return false;
   }
-  DEBUGPORT.print((burnTime - (millis()-startTime)) / 1000l);
+  DEBUGPORT.print((burnTime - (millis() - startTime)) / 1000l);
   DEBUGPORT.println(" RestZeit");
   return true;
 }
 
 void webastoLoop() {
-  switch(currentState){
+  switch (currentState) {
     case State::Idle:
-      if(waitForOnSignal() && checkVoltage()){
-        digitalWrite(53, HIGH);
-        if(startHeater()){
+      if (waitForOnSignal() && checkVoltage()) {
+        digitalWrite(LED_PIN, HIGH);
+        if (startHeater()) {
           currentState = State::Burning;
         }
       }
-      digitalWrite(53, LOW);
-    break;
+      digitalWrite(LED_PIN, LOW);
+      break;
     case State::Burning:
-      if(!checkVoltage()){
-        if(shutdownHeater()){
+      if (!checkVoltage()) {
+        if (shutdownHeater()) {
           currentState = State::LowVoltage;
         }
-      }else if(!checkBurnTime()){
-        if(shutdownHeater()){
+      } else if (!checkBurnTime()) {
+        if (shutdownHeater()) {
           currentState = State::Idle;
         }
-      }else if(waitForOffSignal()){
-        if(shutdownHeater()){
+      } else if (waitForOffSignal()) {
+        if (shutdownHeater()) {
           currentState = State::Idle;
         }
-      }else{
+      } else {
         keepAlive();
       }
-    break;
+      break;
     case State::LowVoltage:
-      if(checkVoltage()){
-        if(voltageCheckCnt>0){
+      if (checkVoltage()) {
+        if (voltageCheckCnt > 0) {
           --voltageCheckCnt;
-          delay(600);//todo: set to 60000
-        }else{
+          delay(600);  // todo: set to 60000
+        } else {
           currentState = State::Idle;
           voltageCheckCnt = 5;
         }
-      }else{
-        voltageCheckCnt = 5;//voltage must be 5 min ok
-        delay(600);//todo: set to 60000
+      } else {
+        voltageCheckCnt = 5;  // voltage must be 5 min ok
+        delay(600);           // todo: set to 60000
       }
-    break;
+      break;
     case State::Unknown:
     default:
       DEBUGPORT.println("Undefined State!");
@@ -181,13 +177,10 @@ void webastoLoop() {
 }
 
 void webastoSetup() {
-  //Red LED on
+  // Red LED on
   currentState = State::Unknown;
-  DEBUGPORT.begin(9600);
-  wbusHeater = new WbusInterface(Serial1);
+  wbusHeater = new WbusInterface(SerialWbus);
   presetInput = new BurnTimePresetInput();
-  pinMode(53, OUTPUT);
-  digitalWrite(53, HIGH);
 
   currentState = State::Idle;
 }

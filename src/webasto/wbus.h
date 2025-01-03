@@ -8,6 +8,7 @@
 
 #include <HardwareSerial.h>
 #include <Arduino.h>
+#include "../config.h"
 #include "wbus_const.h"
 #include "utility.h"
 

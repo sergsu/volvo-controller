@@ -15,8 +15,6 @@ short twobyte2word(unsigned char *in);
 #define WORD2HOUR(w)	  twobyte2word(w)
 //#define WORD2VOLT_TEXT(t, w) shortToMili(t, twobyte2word(w))
 
-#define DEBUGPORT Serial
-
 class BurnTimePresetInput{
   const static int PinCnt = 4;
   static int SensePins[PinCnt];
