@@ -1,4 +1,6 @@
 .pioenvs
+.pio
+.vscode
 .clang_complete
 .gcc-flags.json
 .piolibdeps

@@ -1,8 +1,8 @@
 #include <Arduino.h>
-
-//#include "M2tk.h"
-//#include "m2ghu8g.h"
-
 #include <Time.h>
-#include "constants.h"
-#include "wbus.h"
+
+#include "mqtt/main.h"
+#include "webasto/main.h"
+
+void loop();
+void setup();
