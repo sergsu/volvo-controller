@@ -1,6 +1,6 @@
 /**
  * Car control module
- * 
+ *
  * @link https://github.com/sparkfun/SparkFun_CAN-Bus_Arduino_Library
  */
 

@@ -39,7 +39,8 @@
 #define WBUS_CMD_BOOST 0x25   /* Boost mode */
 
 #define WBUS_CMD_SL_RD 0x32 /* Telestart system level read.  */
-#define WBUS_CMD_X_RD 0x32  /* read something. 2 bytes 0x03 0x07, returns 0x0A \
+#define WBUS_CMD_X_RD                                                          \
+  0x32                      /* read something. 2 bytes 0x03 0x07, returns 0x0A \
                              */
 #define WBUS_CMD_SL_WR 0x33 /* Telestart system level write */
 #define WBUS_CMD_U1 0x38    /* sent no bytes. answer 0B 00 00 00 00 03 BF */
@@ -292,8 +293,9 @@
 #define QUERY_DURATIONS2 0x12 /* 3 bytes */
 #define DUR2_VENT 0           /* Ventilation duration hh:m */
 
-#define QUERY_FPW 0x13 /*!< Fuel prewarming. May not be available. See wbcode \
-                        */
+#define QUERY_FPW                                             \
+  0x13 /*!< Fuel prewarming. May not be available. See wbcode \
+        */
 #define FPW_R                                                             \
   0 /*!< 2 bytes: Current fuel prewarming PTC resistance in mili ohm, big \
        endian */
@@ -371,8 +373,9 @@
 #define WB_CODE_T15 45 /* Ignition (T15) flag present */
 #define WB_CODE_TTH \
   46 /* Temperature thresholds available, command 0x50 index 0x11 */
-#define WB_CODE_VPWR 47 /* Fuel prewarming resistance and power can be read. \
-                         */
+#define WB_CODE_VPWR                                      \
+  47 /* Fuel prewarming resistance and power can be read. \
+      */
 
 #define WB_CODE_SET                                        \
   57 /* 0x02 Set value flame detector resistance (FW-SET), \
@@ -403,17 +406,19 @@
 #define ERR_LIST                                                            \
   1 /* send not data. answer is n, code0, counter0-1, code1, counter1-1 ... \
        coden, countern-1 */
-#define ERR_READ 2 /* send code. answer code, flags, counter ... (err_info_t) \
-                    */
-#define ERR_DEL 3  /* send no data. answer also no data. */
+#define ERR_READ                                                             \
+  2               /* send code. answer code, flags, counter ... (err_info_t) \
+                   */
+#define ERR_DEL 3 /* send no data. answer also no data. */
 #define ERR_TS_LIST                                                       \
   5 /* Telestart error list. Return 5 bytes: n, code0, counter0-1, code1, \
        counter1-1 */
 
 #define CO2CAL_READ 1 /* 3 data bytes: current value, min value, max value. */
-#define CO2CAL_WRITE_C 2 /* 2 data byte: new current value for cold CO2 cal. \
-                          */
-#define CO2CAL_WRITE 3   /* 1 data byte: new current value for hot CO2 cal. */
+#define CO2CAL_WRITE_C                                                     \
+  2                    /* 2 data byte: new current value for cold CO2 cal. \
+                        */
+#define CO2CAL_WRITE 3 /* 1 data byte: new current value for hot CO2 cal. */
 
 /* Component test device definitions */
 #define WBUS_TEST_CF 1   /*!< Combustion Fan */

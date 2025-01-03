@@ -1,4 +1,3 @@
-
 #include "mqtt/main.h"
 #include "volvo-p3/main.h"
 #include "webasto/main.h"

@@ -130,7 +130,6 @@ void mqttLoop() {
     DEBUGPORT.println("Network disconnected");
     if (!modem.waitForNetwork(180000L, true)) {
       DEBUGPORT.println(" fail");
-      delay(10000);
       return;
     }
     if (modem.isNetworkConnected()) {
@@ -145,7 +144,6 @@ void mqttLoop() {
       DEBUGPORT.print(apn);
       if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
         DEBUGPORT.println(" fail");
-        delay(10000);
         return;
       }
       if (modem.isGprsConnected()) {
@@ -165,7 +163,6 @@ void mqttLoop() {
         lastReconnectAttempt = 0;
       }
     }
-    delay(100);
     return;
   }
 

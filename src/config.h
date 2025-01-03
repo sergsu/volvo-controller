@@ -28,15 +28,15 @@
 // set GSM PIN, if any
 #define GSM_PIN ""
 
-static const char apn[]      = "YourAPN";
+static const char apn[] = "YourAPN";
 static const char gprsUser[] = "";
 static const char gprsPass[] = "";
 
 // MQTT details
 static const char* broker = "broker.hivemq.com";
 
-static const char* topicLed       = "GsmClientTest/led";
-static const char* topicInit      = "GsmClientTest/init";
+static const char* topicLed = "GsmClientTest/led";
+static const char* topicInit = "GsmClientTest/init";
 static const char* topicLedStatus = "GsmClientTest/ledStatus";
 
 /**
@@ -45,5 +45,6 @@ static const char* topicLedStatus = "GsmClientTest/ledStatus";
 #define SerialWbus Serial1
 
 static const int LowVoltage = 11.0;
+static const int BurnTime = 20;
 
 #endif
