@@ -3,7 +3,8 @@
 #include <PubSubClient.h>
 #include <TinyGsmClient.h>
 
-#include "../config.h"
+#include "config.h"
+#include "webasto/control.h"
 
 TinyGsm modem(SerialAT);
 TinyGsmClient client(modem);
@@ -21,10 +22,11 @@ void mqttCallback(char *topic, byte *payload, unsigned int len) {
   DEBUGPORT.println();
 
   // Only proceed if incoming message's topic matches
-  if (String(topic) == topicLed) {
-    ledStatus = !ledStatus;
-    digitalWrite(LED_PIN, ledStatus);
-    mqtt.publish(topicLedStatus, ledStatus ? "1" : "0");
+  if (String(topic) == topicExec) {
+    if (((String)(char *)payload).startsWith("webasto:")) {
+      DEBUGPORT.print("Recognized a Webasto command");
+      mqtt.publish(topicExecOutput, executeCommand((char *)payload));
+    }
   }
 }
 
@@ -43,8 +45,8 @@ boolean mqttConnect() {
     return false;
   }
   DEBUGPORT.println(" success");
-  mqtt.publish(topicInit, "GsmClientTest started");
-  mqtt.subscribe(topicLed);
+  mqtt.publish(topicService, "GsmClientTest started");
+  mqtt.subscribe(topicExec);
   return mqtt.connected();
 }
 

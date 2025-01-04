@@ -27,7 +27,7 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
-#include "../config.h"
+#include "config.h"
 #include "webasto/control.h"
 #include "webasto/utility.h"
 

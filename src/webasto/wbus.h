@@ -9,7 +9,7 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 
-#include "../config.h"
+#include "config.h"
 #include "utility.h"
 #include "wbus_const.h"
 

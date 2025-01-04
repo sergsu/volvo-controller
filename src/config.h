@@ -35,9 +35,9 @@ static const char gprsPass[] = "";
 // MQTT details
 static const char* broker = "broker.hivemq.com";
 
-static const char* topicLed = "GsmClientTest/led";
-static const char* topicInit = "GsmClientTest/init";
-static const char* topicLedStatus = "GsmClientTest/ledStatus";
+static const char* topicExec = "GsmClientTest/exec";
+static const char* topicService = "GsmClientTest/service";
+static const char* topicExecOutput = "GsmClientTest/execOutput";
 
 /**
  * Webasto configuration

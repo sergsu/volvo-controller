@@ -11,7 +11,7 @@
 #include <mcp2515.h>
 #include <mcp2515_defs.h>
 
-#include "../config.h"
+#include "config.h"
 
 void volvoP3Setup() {
   DEBUGPORT.println("CAN Read - Testing receival of CAN Bus message");
