@@ -25,26 +25,12 @@
 #define TINY_GSM_USE_GPRS true
 #define TINY_GSM_USE_WIFI false
 
-// set GSM PIN, if any
-#define GSM_PIN ""
-
-static const char apn[] = "YourAPN";
-static const char gprsUser[] = "";
-static const char gprsPass[] = "";
-
-// MQTT details
-static const char* broker = "broker.hivemq.com";
-
-static const char* topicExec = "GsmClientTest/exec";
-static const char* topicService = "GsmClientTest/service";
-static const char* topicExecOutput = "GsmClientTest/execOutput";
-
 /**
  * Webasto configuration
  */
 #define SerialWbus Serial1
 
-static const int LowVoltage = 11.0;
+static const int LowVoltage = 11.5;
 static const int BurnTime = 20;
 
 #endif

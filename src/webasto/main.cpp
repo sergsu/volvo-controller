@@ -76,11 +76,7 @@ bool waitForOffSignal() {
 }
 
 bool isVoltageNormal() {
-  constexpr float voltageDivider =
-      (17.8 + 66.0) / 17.8;             // voltage divisor resistors
-  constexpr float scale = 12.2 / 12.7;  // correction
-  int sensorValue = analogRead(A0);
-  float voltage = sensorValue * (voltageDivider * scale * 5.0 / 1023.0);
+  float voltage = currentVoltage();
   DEBUGPORT.print(voltage);
   DEBUGPORT.println("check Voltage");
   if (voltage < LowVoltage) {

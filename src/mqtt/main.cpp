@@ -4,6 +4,7 @@
 #include <TinyGsmClient.h>
 
 #include "config.h"
+#include "config.private.h"
 #include "webasto/control.h"
 
 TinyGsm modem(SerialAT);
@@ -32,13 +33,10 @@ void mqttCallback(char *topic, byte *payload, unsigned int len) {
 
 boolean mqttConnect() {
   DEBUGPORT.print("Connecting to ");
-  DEBUGPORT.print(broker);
+  DEBUGPORT.print(mqttBroker);
 
-  // Connect to MQTT Broker
-  boolean status = mqtt.connect("GsmClientTest");
-
-  // Or, if you want to authenticate MQTT:
-  // boolean status = mqtt.connect("GsmClientName", "mqtt_user", "mqtt_pass");
+  boolean status =
+      mqtt.connect(MQTT_AUTH_CLIENT_ID, MQTT_AUTH_USER, MQTT_AUTH_PASSWORD);
 
   if (status == false) {
     DEBUGPORT.println(" fail");
@@ -122,7 +120,7 @@ void mqttSetup() {
 #endif
 
   // MQTT Broker setup
-  mqtt.setServer(broker, 1883);
+  mqtt.setServer(mqttBroker, mqttPort);
   mqtt.setCallback(mqttCallback);
 }
 

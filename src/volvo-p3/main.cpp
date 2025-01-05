@@ -1,7 +1,16 @@
 /**
  * Car control module
  *
+ * Ideas of features:
+ * - Use the remote control keyfob to close the automatic tailgate
+ * - Force switch to Video2 when reverse gear is de-selected until speed reaches
+ * 10 km/h (forward facing CAM)
+ * - Force switch to Video2 when front parking sensor becomes active
+ * - Telemetry data sent every minute
+ *
  * @link https://github.com/sparkfun/SparkFun_CAN-Bus_Arduino_Library
+ * @link https://www.swedesolutions.com/cfe-capabilities/
+ * @link https://d5t5.com/article/vdash-vdd-dongle
  */
 
 #include <Canbus.h>

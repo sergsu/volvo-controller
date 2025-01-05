@@ -1,0 +1,23 @@
+#ifndef CONFIG_PRIVATE_H
+#define CONFIG_PRIVATE_H
+
+// GSM details
+#define GSM_PIN ""
+
+static const char apn[] = "YourAPN";
+static const char gprsUser[] = "";
+static const char gprsPass[] = "";
+
+// MQTT details
+static const char* mqttBroker = "broker.hivemq.com";
+static const int mqttPort = 1883;
+
+static const char* topicExec = "GsmClientTest/exec";
+static const char* topicService = "GsmClientTest/service";
+static const char* topicExecOutput = "GsmClientTest/execOutput";
+
+#define MQTT_AUTH_CLIENT_ID "test"
+#define MQTT_AUTH_USER "username"
+#define MQTT_AUTH_PASSWORD "password"
+
+#endif

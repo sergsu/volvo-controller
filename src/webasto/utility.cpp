@@ -44,3 +44,11 @@ short twobyte2word(unsigned char *in) {
   WORDSWAP((unsigned char *)&result, in);
   return result;
 }
+
+float currentVoltage() {
+  constexpr float voltageDivider =
+      (17.8 + 66.0) / 17.8;             // voltage divisor resistors
+  constexpr float scale = 12.2 / 12.7;  // correction
+  int sensorValue = analogRead(A0);
+  return sensorValue * (voltageDivider * scale * 5.0 / 1023.0);
+}

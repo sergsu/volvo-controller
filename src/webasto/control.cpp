@@ -1,3 +1,5 @@
+#include "webasto/utility.h"
+
 enum class State { Unknown, Idle, Burning, LowVoltage } currentState;
 State targetState = State::Unknown;
 
@@ -10,16 +12,22 @@ char *executeCommand(char *payload) {
     setWebastoState(State::Idle);
     return "Webasto stop has been scheduled";
   } else if (payload == "webasto:status") {
+    float voltage = currentVoltage();
+
+    char buffer[64];
     switch (currentState) {
       case State::Burning:
-        return "Webasto is running";
+        sprintf(buffer, "Webasto is running, current voltage: %.2f", voltage);
       case State::Idle:
-        return "Webasto is idle";
+        sprintf(buffer, "Webasto is idle, current voltage: %.2f", voltage);
       case State::LowVoltage:
-        return "Webasto is disabled due to low voltage";
+        sprintf(buffer,
+                "Webasto is disabled due to low voltage, current voltage: %.2f",
+                voltage);
       default:
-        return "Webasto is disabled";
+        sprintf(buffer, "Webasto is disabled, current voltage: %.2f", voltage);
     }
+    return buffer;
   }
   return "Unknown command";
 }
