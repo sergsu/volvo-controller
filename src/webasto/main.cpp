@@ -95,7 +95,7 @@ bool shutdownHeater() {
 }
 
 bool startHeater() {
-  if (wbusHeater->turnOn(WBUS_CMD_ON_PH, 20)) {
+  if (wbusHeater->turnOn(WBUS_CMD_ON_PH, BurnTime)) {
     DEBUGPORT.println("startHeater(): rcv err heater");
     return false;
   }
@@ -124,6 +124,16 @@ bool checkBurnTime() {
 }
 
 void webastoLoop() {
+#ifdef SerialWbus
+  unsigned char incomingByte = 0;
+  if (SerialWbus.available() > 0) {
+    // read the incoming byte:
+    digitalWrite(49, LOW);
+    incomingByte = SerialWbus.read();
+    DEBUGPORT.write(incomingByte);
+  }
+#endif
+
   switch (currentState) {
     case State::Idle:
       if (targetState == State::Burning && isVoltageNormal()) {
@@ -176,7 +186,9 @@ void webastoLoop() {
 void webastoSetup() {
   // Red LED on
   currentState = State::Unknown;
+#ifdef SerialWbus
   wbusHeater = new WbusInterface(SerialWbus);
+#endif
 
   currentState = State::Idle;
 }

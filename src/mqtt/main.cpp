@@ -8,10 +8,8 @@
 #include "webasto/control.h"
 
 TinyGsm modem(SerialAT);
-TinyGsmClient client(modem);
+TinyGsmClientSecure client(modem);
 PubSubClient mqtt(client);
-
-int ledStatus = LOW;
 
 uint32_t lastReconnectAttempt = 0;
 
@@ -36,7 +34,7 @@ boolean mqttConnect() {
   DEBUGPORT.print(mqttBroker);
 
   boolean status =
-      mqtt.connect(MQTT_AUTH_CLIENT_ID, MQTT_AUTH_USER, MQTT_AUTH_PASSWORD);
+      mqtt.connect(mqttAuthUser, mqttAuthUser, mqttAuthPassword);
 
   if (status == false) {
     DEBUGPORT.println(" fail");
@@ -49,49 +47,14 @@ boolean mqttConnect() {
 }
 
 void mqttSetup() {
-  // !!!!!!!!!!!
-  // Set your reset, enable, power pins here
-  // !!!!!!!!!!!
-
   DEBUGPORT.println("Wait...");
 
   // Set GSM module baud rate
-  TinyGsmAutoBaud(SerialAT, GSM_AUTOBAUD_MIN, GSM_AUTOBAUD_MAX);
-  // SerialAT.begin(9600);
-  delay(6000);
+  SerialAT.begin(115200);
 
   // Restart takes quite some time
-  // To skip it, call init() instead of restart()
   DEBUGPORT.println("Initializing modem...");
   modem.restart();
-  // modem.init();
-
-  String modemInfo = modem.getModemInfo();
-  DEBUGPORT.print("Modem Info: ");
-  DEBUGPORT.println(modemInfo);
-
-#if TINY_GSM_USE_GPRS
-  // Unlock your SIM card with a PIN if needed
-  if (GSM_PIN && modem.getSimStatus() != 3) {
-    modem.simUnlock(GSM_PIN);
-  }
-#endif
-
-#if TINY_GSM_USE_WIFI
-  // Wifi connection parameters must be set before waiting for the network
-  DEBUGPORT.print(F("Setting SSID/password..."));
-  if (!modem.networkConnect(wifiSSID, wifiPass)) {
-    DEBUGPORT.println(" fail");
-    delay(10000);
-    return;
-  }
-  DEBUGPORT.println(" success");
-#endif
-
-#if TINY_GSM_USE_GPRS && defined TINY_GSM_MODEM_XBEE
-  // The XBee must run the gprsConnect function BEFORE waiting for network!
-  modem.gprsConnect(apn, gprsUser, gprsPass);
-#endif
 
   DEBUGPORT.print("Waiting for network...");
   if (!modem.waitForNetwork()) {
@@ -100,23 +63,21 @@ void mqttSetup() {
   }
   DEBUGPORT.println(" success");
 
+  modem.addCertificate("cacert.pem", mqttCert, strlen_P(mqttCert));
+  modem.setCertificate("cacert.pem");
+
   if (modem.isNetworkConnected()) {
     DEBUGPORT.println("Network connected");
   }
 
 #if TINY_GSM_USE_GPRS
   // GPRS connection parameters are usually set after network registration
-  DEBUGPORT.print(F("Connecting to "));
-  DEBUGPORT.print(apn);
-  if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+  DEBUGPORT.print(F("Connecting to GPRS"));;
+  if (!modem.gprsConnect("", "", "")) {
     DEBUGPORT.println(" fail");
     return;
   }
   DEBUGPORT.println(" success");
-
-  if (modem.isGprsConnected()) {
-    DEBUGPORT.println("GPRS connected");
-  }
 #endif
 
   // MQTT Broker setup
@@ -140,14 +101,10 @@ void mqttLoop() {
     // and make sure GPRS/EPS is still connected
     if (!modem.isGprsConnected()) {
       DEBUGPORT.println("GPRS disconnected!");
-      DEBUGPORT.print(F("Connecting to "));
-      DEBUGPORT.print(apn);
-      if (!modem.gprsConnect(apn, gprsUser, gprsPass)) {
+      DEBUGPORT.print(F("Connecting to GPRS"));
+      if (!modem.gprsConnect("", "", "")) {
         DEBUGPORT.println(" fail");
         return;
-      }
-      if (modem.isGprsConnected()) {
-        DEBUGPORT.println("GPRS reconnected");
       }
     }
 #endif

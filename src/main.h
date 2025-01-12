@@ -1,8 +1,6 @@
+#define SERIAL_RX_BUFFER_SIZE 256
 #include <Arduino.h>
 #include <Time.h>
-
-#include "mqtt/main.h"
-#include "webasto/main.h"
 
 void loop();
 void setup();

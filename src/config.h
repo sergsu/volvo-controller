@@ -1,5 +1,6 @@
 #ifndef CONFIG_H
 #define CONFIG_H
+#include <Arduino.h>
 
 #define DEBUGPORT Serial
 #define LED_PIN 13
@@ -7,28 +8,14 @@
 /**
  * MQTT Configuration
  */
-#define SerialAT Serial2
+#define SerialAT Serial1
 #define TINY_GSM_DEBUG DEBUGPORT
-
-// Range to attempt to autobaud
-// NOTE:  DO NOT AUTOBAUD in production code.  Once you've established
-// communication, set a fixed baud rate using modem.setBaud(#).
-#define GSM_AUTOBAUD_MIN 9600
-#define GSM_AUTOBAUD_MAX 115200
-
-// Add a reception delay, if needed.
-// This may be needed for a fast processor at a slow baud rate.
-// #define TINY_GSM_YIELD() { delay(2); }
-
-// Define how you're planning to connect to the internet.
-// This is only needed for this example, not in other code.
 #define TINY_GSM_USE_GPRS true
-#define TINY_GSM_USE_WIFI false
 
 /**
  * Webasto configuration
  */
-#define SerialWbus Serial1
+// #define SerialWbus Serial1
 
 static const int LowVoltage = 11.5;
 static const int BurnTime = 20;

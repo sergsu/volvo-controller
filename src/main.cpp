@@ -1,11 +1,13 @@
-#include "mqtt/main.h"
-#include "volvo-p3/main.h"
-#include "webasto/main.h"
+#include "mqtt.tinygsm/main.h"
+// #include "volvo-p3/main.h"
+//#include "webasto/main.h"
 
 void loop() {
-  volvoP3Loop();
+  // volvoP3Loop();
+#ifdef SerialAT
   mqttLoop();
-  webastoLoop();
+#endif
+  //webastoLoop();
 }
 
 void setup() {
@@ -14,9 +16,11 @@ void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
-  volvoP3Setup();
+  // volvoP3Setup();
+#ifdef SerialAT
   mqttSetup();
-  webastoSetup();
+#endif
+  //webastoSetup();
 
   digitalWrite(LED_PIN, LOW);
 }
