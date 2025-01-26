@@ -1,5 +1,9 @@
-static enum class State { Unknown, Idle, Burning, LowVoltage } currentState;
-static State targetState;
+#include "webasto/utility.h"
 
+enum class State { Unknown, Idle, Burning, LowVoltage };
+
+char *executeCommand(String payload);
+State getCurrentState();
+State setCurrentState(State _currentState);
+State getTargetState();
 void setWebastoState(State _targetState);
-char *executeCommand(char *payload);

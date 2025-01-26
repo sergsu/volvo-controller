@@ -1,127 +1,98 @@
-#define TINY_GSM_MODEM_A7672X
-
-#include <PubSubClient.h>
-#include <TinyGsmClient.h>
+#include <avr/pgmspace.h>
 
 #include "config.h"
 #include "config.private.h"
+#include "mqtt/at.h"
 #include "webasto/control.h"
-
-TinyGsm modem(SerialAT);
-TinyGsmClientSecure client(modem);
-PubSubClient mqtt(client);
 
 uint32_t lastReconnectAttempt = 0;
 
-void mqttCallback(char *topic, byte *payload, unsigned int len) {
+void mqttCallback(String topic, String payload) {
   DEBUGPORT.print("Message arrived [");
   DEBUGPORT.print(topic);
   DEBUGPORT.print("]: ");
-  DEBUGPORT.write(payload, len);
+  DEBUGPORT.print(payload);
   DEBUGPORT.println();
 
   // Only proceed if incoming message's topic matches
   if (String(topic) == topicExec) {
-    if (((String)(char *)payload).startsWith("webasto:")) {
-      DEBUGPORT.print("Recognized a Webasto command");
-      mqtt.publish(topicExecOutput, executeCommand((char *)payload));
+    if (payload.startsWith("webasto:")) {
+      DEBUGPORT.print("Recognized a Webasto command: ");
+      DEBUGPORT.println(payload);
+      mqttPublish((char *)topicExecOutput, executeCommand(payload));
     }
   }
-}
-
-boolean mqttConnect() {
-  DEBUGPORT.print("Connecting to ");
-  DEBUGPORT.print(mqttBroker);
-
-  boolean status =
-      mqtt.connect(mqttAuthUser, mqttAuthUser, mqttAuthPassword);
-
-  if (status == false) {
-    DEBUGPORT.println(" fail");
-    return false;
-  }
-  DEBUGPORT.println(" success");
-  mqtt.publish(topicService, "GsmClientTest started");
-  mqtt.subscribe(topicExec);
-  return mqtt.connected();
 }
 
 void mqttSetup() {
-  DEBUGPORT.println("Wait...");
-
   // Set GSM module baud rate
   SerialAT.begin(115200);
 
-  // Restart takes quite some time
-  DEBUGPORT.println("Initializing modem...");
-  modem.restart();
+  initModem();
 
-  DEBUGPORT.print("Waiting for network...");
-  if (!modem.waitForNetwork()) {
-    DEBUGPORT.println(" fail");
+  DEBUGPORT.println("Notifying service channel");
+  mqttPublish((char *)topicService, "Volvo Controller has started");
+
+  DEBUGPORT.println("Subscribing to MQTT topic");
+  // itoa(strlen(topicExec), cstr, 10);
+  if (!waitForATResponse("AT+CMQTTSUB=0,21,2,0", ">", 1, 1000)) {
+    DEBUGPORT.println(" fail[3]");
+    return;
+  }
+  if (!waitForATResponse(topicExec, "OK", 1, 1000)) {
+    DEBUGPORT.println(" fail[4]");
     return;
   }
   DEBUGPORT.println(" success");
-
-  modem.addCertificate("cacert.pem", mqttCert, strlen_P(mqttCert));
-  modem.setCertificate("cacert.pem");
-
-  if (modem.isNetworkConnected()) {
-    DEBUGPORT.println("Network connected");
-  }
-
-#if TINY_GSM_USE_GPRS
-  // GPRS connection parameters are usually set after network registration
-  DEBUGPORT.print(F("Connecting to GPRS"));;
-  if (!modem.gprsConnect("", "", "")) {
-    DEBUGPORT.println(" fail");
-    return;
-  }
-  DEBUGPORT.println(" success");
-#endif
-
-  // MQTT Broker setup
-  mqtt.setServer(mqttBroker, mqttPort);
-  mqtt.setCallback(mqttCallback);
 }
 
 void mqttLoop() {
-  // Make sure we're still registered on the network
-  if (!modem.isNetworkConnected()) {
-    DEBUGPORT.println("Network disconnected");
-    if (!modem.waitForNetwork(180000L, true)) {
-      DEBUGPORT.println(" fail");
-      return;
+  while (SerialAT.available() > 0) {
+    char b = SerialAT.read();
+    if (b == '\n') {
+      continue;
     }
-    if (modem.isNetworkConnected()) {
-      DEBUGPORT.println("Network re-connected");
-    }
+    if (b == '+') {
+      String command = SerialAT.readStringUntil('\n');
+      if (command.startsWith("CMQTTRXSTART: ")) {
+        String serviceInfo = command.substring(14, command.length() - 2);
+        int payloadLength =
+            serviceInfo.substring(serviceInfo.lastIndexOf(",") + 1).toInt();
 
-#if TINY_GSM_USE_GPRS
-    // and make sure GPRS/EPS is still connected
-    if (!modem.isGprsConnected()) {
-      DEBUGPORT.println("GPRS disconnected!");
-      DEBUGPORT.print(F("Connecting to GPRS"));
-      if (!modem.gprsConnect("", "", "")) {
-        DEBUGPORT.println(" fail");
-        return;
+        if (!SerialAT.readStringUntil('\n').startsWith("+CMQTTRXTOPIC: 0,")) {
+          DEBUGPORT.println("+CMQTTRXTOPIC not found!");
+          continue;
+        }
+
+        String topic = SerialAT.readStringUntil('\n');
+        topic.remove(topic.length() - 1);
+
+        String payload = "";
+        do {
+          String packetHeader = SerialAT.readStringUntil('\n');
+          if (!packetHeader.startsWith("+CMQTTRXPAYLOAD: ")) {
+            DEBUGPORT.println("+CMQTTRXPAYLOAD not found!");
+            continue;
+          }
+          int totalPacketLength =
+              packetHeader.substring(packetHeader.lastIndexOf(',') + 1).toInt();
+          do {
+            payload += SerialAT.readStringUntil('\n');
+            payload.remove(payload.length() - 1);
+          } while (totalPacketLength - payload.length() > 0 &&
+                   SerialAT.available() > 0);
+        } while (payload.length() < payloadLength);
+
+        if (!SerialAT.readStringUntil('\n').startsWith("+CMQTTRXEND: 0")) {
+          DEBUGPORT.println("+CMQTTRXEND not found!");
+          continue;
+        }
+
+        mqttCallback(topic, payload);
       }
+    } else {
+      DEBUGPORT.write(b);
     }
-#endif
   }
-
-  if (!mqtt.connected()) {
-    DEBUGPORT.println("=== MQTT NOT CONNECTED ===");
-    // Reconnect every 10 seconds
-    uint32_t t = millis();
-    if (t - lastReconnectAttempt > 10000L) {
-      lastReconnectAttempt = t;
-      if (mqttConnect()) {
-        lastReconnectAttempt = 0;
-      }
-    }
-    return;
-  }
-
-  mqtt.loop();
+  delay(10);
 }

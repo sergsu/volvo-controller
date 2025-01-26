@@ -15,9 +15,13 @@
 /**
  * Webasto configuration
  */
-// #define SerialWbus Serial1
+#define SerialWbus Serial2
+#define VoltageProbe A0
+#define VoltageDividerR1 67.7
+#define VoltageDividerR2 19.9
 
-static const int LowVoltage = 11.5;
+static const int LowVoltage = 11.0;
+static const int GeneratorVoltage = 13.5;
 static const int BurnTime = 20;
 
 #endif

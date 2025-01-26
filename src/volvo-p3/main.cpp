@@ -22,6 +22,25 @@
 
 #include "config.h"
 
+void sendMessage() {
+  tCAN message;
+
+  message.id = 0x631;  // formatted in HEX
+  message.header.rtr = 0;
+  message.header.length = 8;  // formatted in DEC
+  message.data[0] = 0x40;
+  message.data[1] = 0x05;
+  message.data[2] = 0x30;
+  message.data[3] = 0xFF;  // formatted in HEX
+  message.data[4] = 0x00;
+  message.data[5] = 0x40;
+  message.data[6] = 0x00;
+  message.data[7] = 0x00;
+
+  mcp2515_bit_modify(CANCTRL, (1 << REQOP2) | (1 << REQOP1) | (1 << REQOP0), 0);
+  mcp2515_send_message(&message);
+}
+
 void volvoP3Setup() {
   DEBUGPORT.println("CAN Read - Testing receival of CAN Bus message");
   delay(1000);
@@ -54,23 +73,5 @@ void volvoP3Loop() {
       //}
     }
   }
-}
-
-void sendMessage() {
-  tCAN message;
-
-  message.id = 0x631;  // formatted in HEX
-  message.header.rtr = 0;
-  message.header.length = 8;  // formatted in DEC
-  message.data[0] = 0x40;
-  message.data[1] = 0x05;
-  message.data[2] = 0x30;
-  message.data[3] = 0xFF;  // formatted in HEX
-  message.data[4] = 0x00;
-  message.data[5] = 0x40;
-  message.data[6] = 0x00;
-  message.data[7] = 0x00;
-
-  mcp2515_bit_modify(CANCTRL, (1 << REQOP2) | (1 << REQOP1) | (1 << REQOP0), 0);
-  mcp2515_send_message(&message);
+  sendMessage();
 }

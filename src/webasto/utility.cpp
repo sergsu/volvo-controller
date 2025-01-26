@@ -1,6 +1,9 @@
 #include "utility.h"
 
 #include <Arduino.h>
+#include <avr/power.h>
+
+#include "config.h"
 
 char *PrintHexByte(char *str, unsigned int d) {
   if (d <= 0xF) *str++ = '0';
@@ -46,9 +49,13 @@ short twobyte2word(unsigned char *in) {
 }
 
 float currentVoltage() {
+  power_adc_enable();
   constexpr float voltageDivider =
-      (17.8 + 66.0) / 17.8;             // voltage divisor resistors
-  constexpr float scale = 12.2 / 12.7;  // correction
-  int sensorValue = analogRead(A0);
+      (VoltageDividerR1 + VoltageDividerR2) /
+      VoltageDividerR2;            // voltage divisor resistors
+  constexpr int8_t scale = 0.777;  // correction (11.58/14.9)
+  int sensorValue = analogRead(VoltageProbe);
+  power_adc_disable();
+
   return sensorValue * (voltageDivider * scale * 5.0 / 1023.0);
 }

@@ -28,6 +28,8 @@
 #include <EEPROM.h>
 
 #include "config.h"
+#include "config.private.h"
+#include "mqtt/at.h"
 #include "webasto/control.h"
 #include "webasto/utility.h"
 
@@ -42,44 +44,24 @@ int normalVoltageDesiredCycles = 0;
 unsigned long startTime = 0;
 unsigned long lastVoltageCheck = 0;
 unsigned long voltageCheckInterval = 1000;
-
-bool waitForOnSignal() {
-  // cmd = 0; dlen = 0; addr = 0x24; //radio button sends to heater
-  // startTime = 0;
-  // int err = wbusRadio->listen( &addr, &cmd, data, &dlen);
-  // if(err){
-  //   DEBUGPORT.print(".");
-  //   return false;
-  // }
-
-  // if(cmd == WBUS_CMD_ON || cmd == WBUS_CMD_ON_PH ||cmd == WBUS_CMD_ON_SH){
-  //   wbusRadio->send( 0x42, cmd, data, dlen, nullptr, 0);
-  //   return true;
-  // }
-  return false;
-}
-
-bool waitForOffSignal() {
-  // cmd = 0; dlen = 0; addr = 0x24; //radio button sends to heater
-  // int err = wbusRadio->listen( &addr, &cmd, data, &dlen);
-  // if(err){
-  //   DEBUGPORT.print(":");
-  //   return false;
-  // }
-
-  // if(cmd == WBUS_CMD_OFF){
-  //   startTime = 0;
-  //   wbusRadio->send( 0x42, cmd, data, dlen, nullptr, 0);
-  //   return true;
-  // }
-  return false;
-}
+unsigned long lastKeepAlive = 0;
+unsigned long keepAliveInterval = 2000;
 
 bool isVoltageNormal() {
   float voltage = currentVoltage();
-  DEBUGPORT.print(voltage);
-  DEBUGPORT.println("check Voltage");
+  DEBUGPORT.print("check Voltage: ");
+  DEBUGPORT.println(voltage);
   if (voltage < LowVoltage) {
+    return false;
+  }
+  return true;
+}
+
+bool isCarRunning() {
+  float voltage = currentVoltage();
+  DEBUGPORT.print("check Voltage: ");
+  DEBUGPORT.println(voltage);
+  if (voltage > GeneratorVoltage) {
     return false;
   }
   return true;
@@ -89,26 +71,37 @@ bool shutdownHeater() {
   startTime = 0;
   DEBUGPORT.println("off");
   if (!wbusHeater->turnOff()) {
+    mqttPublish((char*)topicService, "Webasto has shut down.");
     return true;
   }
+  mqttPublish((char*)topicService, "Webasto did not shutdown!");
   return false;
 }
 
 bool startHeater() {
   if (wbusHeater->turnOn(WBUS_CMD_ON_PH, BurnTime)) {
     DEBUGPORT.println("startHeater(): rcv err heater");
+    mqttPublish((char*)topicService, "Webasto did not start!");
     return false;
   }
 
+  mqttPublish((char*)topicService, "Webasto has started.");
   startTime = millis();
+
   return true;
 }
 
 bool keepAlive() {
+  if (lastKeepAlive + keepAliveInterval > millis()) {
+    return true;
+  }
+
   if (wbusHeater->check(WBUS_CMD_ON_PH)) {
     DEBUGPORT.println("keepAlive(): rcv err heater");
     return false;
   }
+  lastKeepAlive = millis();
+
   return true;
 }
 
@@ -124,22 +117,19 @@ bool checkBurnTime() {
 }
 
 void webastoLoop() {
-#ifdef SerialWbus
   unsigned char incomingByte = 0;
   if (SerialWbus.available() > 0) {
     // read the incoming byte:
-    digitalWrite(49, LOW);
     incomingByte = SerialWbus.read();
     DEBUGPORT.write(incomingByte);
   }
-#endif
 
-  switch (currentState) {
+  switch (getCurrentState()) {
     case State::Idle:
-      if (targetState == State::Burning && isVoltageNormal()) {
+      if (getTargetState() == State::Burning && isVoltageNormal()) {
         digitalWrite(LED_PIN, HIGH);
         if (startHeater()) {
-          currentState = State::Burning;
+          setCurrentState(State::Burning);
         }
         digitalWrite(LED_PIN, LOW);
       }
@@ -147,28 +137,31 @@ void webastoLoop() {
     case State::Burning:
       if (!isVoltageNormal()) {
         if (shutdownHeater()) {
-          currentState = State::LowVoltage;
+          setCurrentState(State::LowVoltage);
         }
       } else if (!checkBurnTime()) {
         if (shutdownHeater()) {
-          currentState = State::Idle;
+          setCurrentState(State::Idle);
         }
-      } else if (targetState == State::Idle) {
+      } else if (isCarRunning()) {
         if (shutdownHeater()) {
-          currentState = State::Idle;
+          setCurrentState(State::Idle);
+        }
+      } else if (getTargetState() == State::Idle) {
+        if (shutdownHeater()) {
+          setCurrentState(State::Idle);
         }
       } else {
         keepAlive();
       }
       break;
     case State::LowVoltage:
-      if (millis() >
-          lastVoltageCheck + 1000u) {  // only check once a second at most
+      if (millis() > lastVoltageCheck + voltageCheckInterval) {
         if (isVoltageNormal()) {
           if (normalVoltageDesiredCycles > 0) {
             --normalVoltageDesiredCycles;
           } else {
-            currentState = State::Idle;
+            setCurrentState(State::Idle);
             normalVoltageDesiredCycles = 5;
           }
           lastVoltageCheck = millis();
@@ -178,6 +171,8 @@ void webastoLoop() {
       }
       break;
     case State::Unknown:
+      setCurrentState(State::Idle);
+      break;
     default:
       DEBUGPORT.println("Undefined State!");
   }
@@ -185,10 +180,12 @@ void webastoLoop() {
 
 void webastoSetup() {
   // Red LED on
-  currentState = State::Unknown;
-#ifdef SerialWbus
+  setCurrentState(State::Unknown);
   wbusHeater = new WbusInterface(SerialWbus);
-#endif
 
-  currentState = State::Idle;
+  setCurrentState(State::Idle);
+
+  char buf[32];
+  sprintf(buf, "Current voltage: %.1f V", currentVoltage());
+  mqttPublish((char*)topicService, buf);
 }
