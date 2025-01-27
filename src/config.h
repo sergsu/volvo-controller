@@ -15,7 +15,7 @@
 /**
  * Webasto configuration
  */
-#define SerialWbus Serial2
+#define SerialWbus Serial1
 #define VoltageProbe A0
 #define VoltageDividerR1 67.7
 #define VoltageDividerR2 19.9

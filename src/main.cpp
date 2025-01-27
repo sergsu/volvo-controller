@@ -23,10 +23,10 @@ void setupLowPower() {
   pinMode(A9, OUTPUT);
   pinMode(A10, OUTPUT);
   pinMode(A11, OUTPUT);
-  pinMode(A12, OUTPUT);
-  pinMode(A13, OUTPUT);
-  pinMode(A14, OUTPUT);
-  pinMode(A15, OUTPUT);
+  // pinMode(A12, OUTPUT);
+  // pinMode(A13, OUTPUT);
+  // pinMode(A14, OUTPUT);
+  // pinMode(A15, OUTPUT);
 
   digitalWrite(A1, LOW);
   digitalWrite(A2, LOW);
@@ -39,10 +39,10 @@ void setupLowPower() {
   digitalWrite(A9, LOW);
   digitalWrite(A10, LOW);
   digitalWrite(A11, LOW);
-  digitalWrite(A12, LOW);
-  digitalWrite(A13, LOW);
-  digitalWrite(A14, LOW);
-  digitalWrite(A15, LOW);
+  // digitalWrite(A12, LOW);
+  // digitalWrite(A13, LOW);
+  // digitalWrite(A14, LOW);
+  // digitalWrite(A15, LOW);
 
   for (int i = 2; i <= 53; i++) {
     if (i == 16 || i == 17 || i == 18 || i == 19) {
@@ -62,20 +62,21 @@ void setupLowPower() {
 }
 
 void loop() {
-  DEBUGPORT.print(".");
-  digitalWrite(LED_PIN, HIGH);
+  // DEBUGPORT.print(".");
+  // digitalWrite(LED_PIN, HIGH);
 
-  if (SerialAT.available() || SerialWbus.available()) {
-    lastActivityTime = millis();
-  }
+  // if (SerialAT.available() || SerialWbus.available()) {
+  //   lastActivityTime = millis();
+  // }
 
   // volvoP3Loop();
-  mqttLoop();
+  // mqttLoop();
   webastoLoop();
 
-  digitalWrite(LED_PIN, LOW);
-  sleep.idleMode();
-  sleep.sleepDelay(isActivityCooldownPeriod() ? 10000 : 500);
+  // digitalWrite(LED_PIN, LOW);
+  // sleep.idleMode();
+  // sleep.sleepDelay(isActivityCooldownPeriod() ? 10000 : 500);
+  delay(20);
 }
 
 bool isActivityCooldownPeriod() {
@@ -85,13 +86,13 @@ bool isActivityCooldownPeriod() {
 void setup() {
   DEBUGPORT.begin(115200);
 
-  setupLowPower();
+  // setupLowPower();
 
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);
 
   // volvoP3Setup();
-  mqttSetup();
+  // mqttSetup();
   webastoSetup();
 
   digitalWrite(LED_PIN, LOW);

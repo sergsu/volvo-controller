@@ -117,75 +117,21 @@ bool checkBurnTime() {
 }
 
 void webastoLoop() {
-  // unsigned char incomingByte = 0;
-  // if (SerialWbus.available() > 0) {
-  //   // read the incoming byte:
-  //   incomingByte = SerialWbus.read();
-  //   DEBUGPORT.write(incomingByte);
-  // }
+  unsigned char incomingByte = 0;
+  while (SerialWbus.available() > 0) {
+    // read the incoming byte:
+    incomingByte = SerialWbus.read();
 
-  switch (getCurrentState()) {
-    case State::Idle:
-      if (getTargetState() == State::Burning && isVoltageNormal()) {
-        digitalWrite(LED_PIN, HIGH);
-        if (startHeater()) {
-          setCurrentState(State::Burning);
-        }
-        digitalWrite(LED_PIN, LOW);
-      }
-      break;
-    case State::Burning:
-      if (!isVoltageNormal()) {
-        if (shutdownHeater()) {
-          setCurrentState(State::LowVoltage);
-        }
-      } else if (!checkBurnTime()) {
-        if (shutdownHeater()) {
-          setCurrentState(State::Idle);
-        }
-      } else if (isCarRunning()) {
-        if (shutdownHeater()) {
-          setCurrentState(State::Idle);
-        }
-      } else if (getTargetState() == State::Idle) {
-        if (shutdownHeater()) {
-          setCurrentState(State::Idle);
-        }
-      } else {
-        keepAlive();
-      }
-      break;
-    case State::LowVoltage:
-      if (millis() > lastVoltageCheck + voltageCheckInterval) {
-        if (isVoltageNormal()) {
-          if (normalVoltageDesiredCycles > 0) {
-            --normalVoltageDesiredCycles;
-          } else {
-            setCurrentState(State::Idle);
-            normalVoltageDesiredCycles = 5;
-          }
-          lastVoltageCheck = millis();
-        } else {
-          normalVoltageDesiredCycles = 5;
-        }
-      }
-      break;
-    case State::Unknown:
-      setCurrentState(State::Idle);
-      break;
-    default:
-      DEBUGPORT.println("Undefined State!");
+    if (incomingByte < 10) {
+      DEBUGPORT.print("0");
+    }
+    DEBUGPORT.println(incomingByte, HEX);
   }
 }
 
 void webastoSetup() {
-  // Red LED on
   setCurrentState(State::Unknown);
   wbusHeater = new WbusInterface(SerialWbus);
 
   setCurrentState(State::Idle);
-
-  char buf[32];
-  sprintf(buf, "Current voltage: %.1f V", currentVoltage());
-  mqttPublish((char*)topicService, buf);
 }
