@@ -117,12 +117,12 @@ bool checkBurnTime() {
 }
 
 void webastoLoop() {
-  unsigned char incomingByte = 0;
-  if (SerialWbus.available() > 0) {
-    // read the incoming byte:
-    incomingByte = SerialWbus.read();
-    DEBUGPORT.write(incomingByte);
-  }
+  // unsigned char incomingByte = 0;
+  // if (SerialWbus.available() > 0) {
+  //   // read the incoming byte:
+  //   incomingByte = SerialWbus.read();
+  //   DEBUGPORT.write(incomingByte);
+  // }
 
   switch (getCurrentState()) {
     case State::Idle:
