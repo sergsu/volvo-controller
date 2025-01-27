@@ -53,10 +53,8 @@ float currentVoltage() {
   constexpr float voltageDivider =
       (VoltageDividerR1 + VoltageDividerR2) /
       VoltageDividerR2;  // voltage divisor resistors
-  // constexpr float scale = 0.777;  // correction (11.58/14.9)
-  constexpr float scale = 1.03;  // correction (11.35/11)
   int sensorValue = analogRead(VoltageProbe);
   power_adc_disable();
 
-  return sensorValue * (voltageDivider * scale * 5.0 / 1023.0);
+  return sensorValue * (voltageDivider * VoltageCorrection * 5.0 / 1023.0);
 }

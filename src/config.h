@@ -20,6 +20,9 @@
 #define VoltageDividerR1 67.7
 #define VoltageDividerR2 19.9
 
+#define VoltageCorrection 0.777F  // For 3.7V
+// #define VoltageCorrection 1.03F   // For 5V
+
 static const int LowVoltage = 11.0;
 static const int GeneratorVoltage = 13.5;
 static const int BurnTime = 20;
