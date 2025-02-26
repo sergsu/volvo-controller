@@ -51,20 +51,14 @@ bool isVoltageNormal() {
   float voltage = currentVoltage();
   DEBUGPORT.print("check Voltage: ");
   DEBUGPORT.println(voltage);
-  if (voltage < LowVoltage) {
-    return false;
-  }
-  return true;
+  return voltage > LowVoltage;
 }
 
 bool isCarRunning() {
   float voltage = currentVoltage();
   DEBUGPORT.print("check Voltage: ");
   DEBUGPORT.println(voltage);
-  if (voltage > GeneratorVoltage) {
-    return false;
-  }
-  return true;
+  return voltage > GeneratorVoltage;
 }
 
 bool shutdownHeater() {
@@ -92,7 +86,7 @@ bool startHeater() {
 }
 
 bool keepAlive() {
-  if (lastKeepAlive + keepAliveInterval > millis()) {
+  if (millis() < lastKeepAlive + keepAliveInterval) {
     return true;
   }
 
@@ -107,7 +101,7 @@ bool keepAlive() {
 
 bool checkBurnTime() {
   unsigned long burnTime = BurnTime * 60ul * 1000ul;  // mins to millis
-  if (millis() - startTime > burnTime) {
+  if (millis() > startTime + burnTime) {
     DEBUGPORT.println("BurnTime over");
     return false;
   }
@@ -117,13 +111,6 @@ bool checkBurnTime() {
 }
 
 void webastoLoop() {
-  // unsigned char incomingByte = 0;
-  // if (SerialWbus.available() > 0) {
-  //   // read the incoming byte:
-  //   incomingByte = SerialWbus.read();
-  //   DEBUGPORT.write(incomingByte);
-  // }
-
   switch (getCurrentState()) {
     case State::Idle:
       if (getTargetState() == State::Burning && isVoltageNormal()) {
